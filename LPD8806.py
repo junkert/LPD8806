@@ -22,7 +22,7 @@ Example:
     >> led = LPD8806.strand()
     >> led.fill(255, 0, 0)
 """
-
+import spidev
 
 class strand:
 
@@ -32,8 +32,9 @@ class strand:
             leds -- strand size
             dev -- spi device
         """
-        self.dev = dev
-        self.spi = file(self.dev, "wb")
+        self.spi = spidev.SpiDev()
+        self.spi.open(0, 0)
+        self.spi.max_speed_hz = 25000000
         self.leds = leds
         self.gamma = bytearray(256)
         self.buffer = [0 for x in range(self.leds)]
@@ -74,11 +75,13 @@ class strand:
         """
         Flush the buffer to the strand
         """
-        for x in range(self.leds):
-            self.spi.write(self.buffer[x])
-            self.spi.flush()
-        self.spi.write(bytearray(b'\x00'))
-        self.spi.flush()
+        final_buf = []
+        for i in range(0, self.leds):
+            final_buf.append(self.buffer[i][0])
+            final_buf.append(self.buffer[i][1])
+            final_buf.append(self.buffer[i][2])
+        final_buf.append(0)
+        self.spi.xfer(final_buf)
 
     def wheel(self, start=0, end=0):
         """
